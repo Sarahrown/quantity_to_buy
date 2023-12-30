@@ -1,0 +1,45 @@
+from binance.client import Client
+
+# Замените на свои ключи API Binance
+api_key = 'YOUR_API_KEY'
+api_secret = 'YOUR_API_SECRET'
+
+# Создаем клиент Binance
+client = Client(api_key, api_secret)
+
+def execute_transaction():
+    try:
+        # Получаем информацию о состоянии аккаунта
+        account_info = client.get_account()
+
+        # Определяем сумму покупки, цену и символ
+        symbol = 'BTCUSDT'
+        quantity_to_buy = 0.001  # Укажите количество для покупки
+        current_price = client.get_symbol_ticker(symbol=symbol)['price']
+
+        # Проверяем лимиты торговли
+        exchange_info = client.get_exchange_info()
+        filters = next(filter(lambda x: x['symbol'] == symbol, exchange_info['symbols']))
+        lot_size_filter = next(filter(lambda x: x['filterType'] == 'LOT_SIZE', filters['filters']))
+        min_quantity = float(lot_size_filter['minQty'])
+        max_quantity = float(lot_size_filter['maxQty'])
+        step_size = float(lot_size_filter['stepSize'])
+
+        if min_quantity <= quantity_to_buy <= max_quantity and (quantity_to_buy - min_quantity) % step_size == 0:
+            # Проверка выполнена, создаем ордер на покупку
+            order = client.create_order(
+                symbol=symbol,
+                side=Client.SIDE_BUY,
+                type=Client.ORDER_TYPE_MARKET,
+                quantity=quantity_to_buy
+            )
+            print("Транзакция выполнена успешно:")
+            print(order)
+        else:
+            print("Количество для покупки не соответствует лимитам.")
+
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+
+if __name__ == "__main__":
+    execute_transaction()
